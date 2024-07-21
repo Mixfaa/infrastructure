@@ -47,7 +47,7 @@ class SocketChannelReader(
             ex.nonFatalOrThrow()
             if (ex is ClientError) {
                 logger.info("Client error ${ex.message}")
-                ex.message?.let(clientData::send)
+                clientData.send(ex.byteBuffered)
             } else {
                 ex.printStackTrace()
                 logger.error("Error: $ex")

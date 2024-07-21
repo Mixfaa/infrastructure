@@ -3,6 +3,7 @@ plugins {
 	id("io.spring.dependency-management") version "1.1.5"
 	kotlin("jvm") version "1.9.24"
 	kotlin("plugin.spring") version "1.9.24"
+    id("com.google.devtools.ksp") version "1.9.24-1.0.20"
 }
 
 group = "com.infrastructure"
@@ -16,9 +17,14 @@ java {
 
 repositories {
 	mavenCentral()
+	maven("https://jitpack.io")
 }
 
 dependencies {
+	implementation("com.github.Mixfaa:excify:0.0.2")
+    ksp("com.github.Mixfaa:excify:0.0.2")
+	implementation("com.github.Mixfaa:excify-either-module:0.0.2")
+
 	implementation("io.arrow-kt:arrow-core:1.2.4")
 	implementation("io.arrow-kt:arrow-fx-coroutines:1.2.4")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0-RC")

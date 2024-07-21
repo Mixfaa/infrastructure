@@ -1,3 +1,8 @@
 package com.mixfa.infrastructure.misc.exceptions
 
-open class ClientError(msg: String) : Throwable(msg, null, false, false)
+import com.mixfa.excify.FastException
+import com.mixfa.infrastructure.misc.toByteBuffer
+
+open class ClientError(msg: String) : FastException(msg) {
+    val byteBuffered = msg.toByteBuffer()
+}
