@@ -54,14 +54,14 @@ class ChannelService(
     private val channelsList: MutableList<Channel> = CopyOnWriteArrayList()
 
     init {
-        Events.OnDisconnected.subscribe(0) { clientData ->
+        Events.OnDisconnected.subscribe { clientData ->
             for (channel in channelsList) {
                 if (channel.admin === clientData)
                     channel.admin = null
 
                 channel.participants.remove(clientData)
 
-                if (channel.admin === null && channel.participants.isEmpty()) {
+                if (channel.admin == null && channel.participants.isEmpty()) {
                     channelsList.remove(channel) // close empty channel
                     logger.info("Channel ${channel.name} closed")
                 }

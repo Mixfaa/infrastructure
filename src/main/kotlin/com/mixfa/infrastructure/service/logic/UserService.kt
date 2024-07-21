@@ -4,13 +4,12 @@ import com.mixfa.infrastructure.misc.ClientContext
 import com.mixfa.infrastructure.misc.toByteBuffer
 import com.mixfa.infrastructure.model.User
 import com.mixfa.infrastructure.service.repo.UserRepo
-import kotlinx.coroutines.launch
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 
 interface UserServiceOps {
-    fun register(username: String, password: String)
-    fun authenticate(username: String, password: String)
+    suspend fun register(username: String, password: String)
+    suspend fun authenticate(username: String, password: String)
 }
 
 @Service
@@ -19,43 +18,37 @@ class UserService(
     private val passwordEncoder: PasswordEncoder,
     private val clientContext: ClientContext
 ) : UserServiceOps {
-    override fun register(username: String, password: String) {
-        val (client, scope) = clientContext.get()
+    override suspend fun register(username: String, password: String) {
+        val client = clientContext.get()
 
-        scope.launch {
-            val exists = userRepo.existsById(username)
-            if (exists) {
-                client.send(USER_EXIST_MSG_BUFFER)
-                return@launch
-            }
-
-            val user = User(username, passwordEncoder.encode(password))
-            client.user = user
-
-            userRepo.save(user)
+        val exists = userRepo.existsById(username)
+        if (exists) {
+            client.send(USER_EXIST_MSG_BUFFER)
+            return
         }
+
+        val user = User(username, passwordEncoder.encode(password))
+        client.user = user
+
+        userRepo.save(user)
     }
 
-    override fun authenticate(username: String, password: String) {
-        val (client, scope) = clientContext.get()
+    override suspend fun authenticate(username: String, password: String) {
+        val client = clientContext.get()
 
-        scope.launch {
-            val userOpt = userRepo.findById(username)
+        val user = userRepo.findById(username)
 
-            if (userOpt.isEmpty) {
-                client.send(USER_NOT_EXIST_MSG_BUFFER)
-                return@launch
-            }
-
-            val user = userOpt.get()
-
-            if (!passwordEncoder.matches(user.password, password)) {
-                client.send(INVALID_PASSWORD_MSG_BUFFER)
-                return@launch
-            }
-
-            client.user = user
+        if (user == null) {
+            client.send(USER_NOT_EXIST_MSG_BUFFER)
+            return
         }
+
+        if (!passwordEncoder.matches(password, user.password)) {
+            client.send(INVALID_PASSWORD_MSG_BUFFER)
+            return
+        }
+
+        client.user = user
     }
 
     companion object {

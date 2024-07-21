@@ -39,24 +39,25 @@ private inline fun split(bytes: ByteArray, offset: Int, size: Int, handler: (off
     }
 }
 
-fun parseArgs(bytes: ByteArray, offset: Int, size: Int, argsTypes: List<KClass<*>>): Array<Any?> {
+fun parseArgs(bytes: ByteArray, globalOffset: Int, globalSize: Int, argsTypes: List<KClass<*>>): Array<Any?> {
     if (argsTypes.isEmpty()) return emptyArray()
 
-    val args = Array<Any?>(argsTypes.size) { null }
+    val args = arrayOfNulls<Any?>(argsTypes.size)
 
     var i = 0
-    split(bytes, offset, size) { _offset, _size ->
+    split(bytes, globalOffset, globalSize) { offset, _size ->
         if (i == argsTypes.size) return args
+        val size  = if (i == argsTypes.lastIndex) globalSize - offset else _size
 
         val arg = when (val type = argsTypes[i]) {
-            String::class, Any::class -> String(bytes, _offset, _size)
-            Int::class -> String(bytes, _offset, _size).toInt()
-            Double::class -> String(bytes, _offset, _size).toDouble()
-            Float::class -> String(bytes, _offset, _size).toFloat()
-            Boolean::class -> bytes[_offset].compareTo(1)
-            ByteArray::class -> bytes.copyOfRange(_offset, _offset + _size)
+            String::class, Any::class -> String(bytes, offset, size)
+            Int::class -> String(bytes, offset, size).toInt()
+            Double::class -> String(bytes, offset, size).toDouble()
+            Float::class -> String(bytes, offset, size).toFloat()
+            Boolean::class -> bytes[offset].compareTo(1)
+            ByteArray::class -> bytes.copyOfRange(offset, offset + size)
             else -> type.constructors.find { it.parameters.size == 1 && it.parameters[0] == String::class }
-                ?.call(String(bytes, _offset, _size))
+                ?.call(String(bytes, offset, size))
                 ?: error("Unresolved type: $type")
         }
 
@@ -66,20 +67,3 @@ fun parseArgs(bytes: ByteArray, offset: Int, size: Int, argsTypes: List<KClass<*
 
     return args
 }
-//    val args = String(bytes, offset, size).split(':')
-//
-//    if (args.size != argsTypes.size) return null
-//
-//    return Array(argsTypes.size) { index ->
-//        val type = argsTypes[index]
-//        val arg = args[index]
-//        when (type) {
-//            String::class -> arg
-//            Any::class -> arg
-//            Int::class -> arg.toInt()
-//            Double::class -> arg.toDouble()
-//            Float::class -> arg.toFloat()
-//            else -> type.constructors.find { it.parameters.size == 1 && it.parameters[0] == String::class }?.call(arg)
-//                ?: error("Unresolved type: $type")
-//        }
-//    }

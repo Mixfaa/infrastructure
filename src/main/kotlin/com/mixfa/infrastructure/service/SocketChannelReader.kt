@@ -1,7 +1,6 @@
 package com.mixfa.infrastructure.service
 
 import arrow.core.nonFatalOrThrow
-import com.mixfa.infrastructure.misc.ClientContextManager
 import com.mixfa.infrastructure.misc.Events
 import com.mixfa.infrastructure.misc.exceptions.ClientError
 import com.mixfa.infrastructure.misc.toByteBuffer
@@ -12,7 +11,6 @@ import java.nio.channels.CompletionHandler
 
 @Component
 class SocketChannelReader(
-    private val clientContextManager: ClientContextManager,
     private val messageHandler: MessageHandler,
     private val clientRegistry: ClientRegistry,
     private val logger: Logger
@@ -38,34 +36,31 @@ class SocketChannelReader(
             return
         }
 
-        if (result != 0) {
-            try {
-                clientContextManager.put(clientData)
+        try {
+            if (result != 0)
                 messageHandler.redirect(
                     clientData,
                     clientData.buffer.array(),
                     result
                 )
-            } catch (ex: Throwable) {
-                ex.nonFatalOrThrow()
-                if (ex is ClientError) {
-                    logger.info("Client error ${ex.message}")
-                    ex.message?.let(clientData::send)
-                } else {
-                    ex.printStackTrace()
-                    logger.error("Error: $ex")
-                    clientData.send(INTERNAL_SERVER_ERROR_MSG)
-                }
-            } finally {
-                clientContextManager.clean()
-                readNext(clientData)
+        } catch (ex: Throwable) {
+            ex.nonFatalOrThrow()
+            if (ex is ClientError) {
+                logger.info("Client error ${ex.message}")
+                ex.message?.let(clientData::send)
+            } else {
+                ex.printStackTrace()
+                logger.error("Error: $ex")
+                clientData.send(INTERNAL_SERVER_ERROR_MSG)
             }
+        } finally {
+            readNext(clientData)
         }
     }
 
-    override fun failed(exc: Throwable?, attachment: ClientData) {
-        logger.error("Failed to read message: $exc on $attachment")
-        emitDisconnection(attachment)
+    override fun failed(exc: Throwable?, clientData: ClientData) {
+        logger.error("Failed to read message: $exc on $clientData")
+        emitDisconnection(clientData)
     }
 
     companion object {

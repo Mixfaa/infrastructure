@@ -1,7 +1,6 @@
 package com.mixfa.infrastructure.service.repo
 
 import com.mixfa.infrastructure.model.User
-import org.springframework.data.mongodb.repository.MongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 
-interface UserRepo : MongoRepository<User, String> {
-}
+interface UserRepo : CoroutineCrudRepository<User, String>

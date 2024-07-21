@@ -1,6 +1,7 @@
 package com.mixfa.infrastructure.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.mixfa.infrastructure.misc.ClientContextManager
 import com.mixfa.infrastructure.misc.exceptions.ClientError
 import com.mixfa.infrastructure.misc.parseArgs
 import com.mixfa.infrastructure.model.ClientData
@@ -15,7 +16,8 @@ import kotlin.reflect.full.callSuspend
 @Component
 class MessageHandler(
     private val bus: OperationBus,
-    private val mapper: ObjectMapper
+    private val mapper: ObjectMapper,
+    private val clientContextManager: ClientContextManager
 ) {
     fun redirect(
         clientData: ClientData,
@@ -40,34 +42,47 @@ class MessageHandler(
     }
 
     private fun sendResponse(clientData: ClientData, response: Any?) {
-        if (response != null) {
-            if (response is String)
-                clientData.send(response)
-            else if (response !is Unit)
-                clientData.send(mapper.writeValueAsBytes(response))
-        }
+        if (response == null)
+            return
+
+        if (response is String)
+            clientData.send(response)
+        else if (response !is Unit)
+            clientData.send(mapper.writeValueAsBytes(response))
     }
 
     private fun handleAsync(clientData: ClientData, opsTag: Ops, args: Array<Any?>) {
         clientData.coroutineScope.launch {
-            val response = try {
-                opsTag.handler.callSuspend(bus, *args)
-            } catch (ex: InvocationTargetException) {
-                throw ex.targetException // unwrap reflection exception
+            try {
+                clientContextManager.put(clientData)
+                val response = try {
+                    opsTag.handler.callSuspend(bus, *args)
+                } catch (ex: InvocationTargetException) {
+                    throw ex.targetException
+                }
+                sendResponse(clientData, response)
+            } catch (throwable: Throwable) {
+                throw throwable
+            } finally {
+                clientContextManager.clean()
             }
-
-            sendResponse(clientData, response)
         }
     }
 
     private fun handleSync(clientData: ClientData, opsTag: Ops, args: Array<Any?>) {
-        val response = try {
-            opsTag.handler.call(bus, *args)
-        } catch (ex: InvocationTargetException) {
-            throw ex.targetException // unwrap reflection exception
+        try {
+            clientContextManager.put(clientData)
+            val response = try {
+                opsTag.handler.call(bus, *args)
+            } catch (ex: InvocationTargetException) {
+                throw ex.targetException
+            }
+
+            sendResponse(clientData, response)
+        } catch (throwable: Throwable) {
+            throw throwable
+        } finally {
+            clientContextManager.clean()
         }
-
-        sendResponse(clientData, response)
     }
-
 }
