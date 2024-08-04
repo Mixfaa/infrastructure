@@ -11,3 +11,5 @@ inline fun <T> ignoringExceptions(block: () -> T): T? {
 }
 
 fun String.toByteBuffer() : ByteBuffer = ByteBuffer.wrap(this.toByteArray())
+
+const val PARAM_SEPARATOR_BYTE = ':'.code.toByte()

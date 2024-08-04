@@ -1,7 +1,10 @@
 package com.mixfa.infrastructure.service.logic
 
 import com.mixfa.infrastructure.misc.ClientContext
-import com.mixfa.infrastructure.misc.exceptions.*
+import com.mixfa.infrastructure.misc.exceptions.ClientError
+import com.mixfa.infrastructure.misc.exceptions.invalidPassword
+import com.mixfa.infrastructure.misc.exceptions.orThrow
+import com.mixfa.infrastructure.misc.exceptions.usernameTaken
 import com.mixfa.infrastructure.model.User
 import com.mixfa.infrastructure.service.repo.UserRepo
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -23,7 +26,7 @@ class UserService(
 
         val exists = userRepo.existsById(username)
         if (exists)
-            throw UserServiceExceptions.usernameTaken()
+            throw ClientError.usernameTaken()
 
         val user = User(username, passwordEncoder.encode(password))
         client.user = user
@@ -37,7 +40,7 @@ class UserService(
         val user = userRepo.findById(username).orThrow()
 
         if (!passwordEncoder.matches(password, user.password))
-            throw UserServiceExceptions.invalidPassword()
+            throw ClientError.invalidPassword()
 
         client.user = user
     }

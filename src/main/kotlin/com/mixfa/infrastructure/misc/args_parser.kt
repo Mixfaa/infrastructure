@@ -2,13 +2,11 @@ package com.mixfa.infrastructure.misc
 
 import kotlin.reflect.KClass
 
-private const val SEPARATOR_BYTE = ':'.code.toByte()
-
 private fun findNextSeparator(bytes: ByteArray, offset: Int, size: Int): Int {
     var i = offset
     while (i <= size) {
         val byte = bytes[i]
-        if (byte == SEPARATOR_BYTE)
+        if (byte == PARAM_SEPARATOR_BYTE)
             return i
 
         ++i
@@ -47,7 +45,7 @@ fun parseArgs(bytes: ByteArray, globalOffset: Int, globalSize: Int, argsTypes: L
     var i = 0
     split(bytes, globalOffset, globalSize) { offset, _size ->
         if (i == argsTypes.size) return args
-        val size  = if (i == argsTypes.lastIndex) globalSize - offset else _size
+        val size = if (i == argsTypes.lastIndex) globalSize - offset else _size
 
         val arg = when (val type = argsTypes[i]) {
             String::class, Any::class -> String(bytes, offset, size)

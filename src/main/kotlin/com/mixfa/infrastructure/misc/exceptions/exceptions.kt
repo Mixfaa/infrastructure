@@ -4,12 +4,8 @@ import com.mixfa.excify.ExcifyCachedException
 import com.mixfa.excify.ExcifyOptionalOrThrow
 import com.mixfa.infrastructure.model.User
 
-class UserServiceExceptions(msg: String) : ClientError(msg) {
-    companion object
-}
-
 @ExcifyCachedException(methodName = "usernameTaken")
-val usernameTakenException = UserServiceExceptions("Username already taken")
+val usernameTakenException = ClientError("Username already taken")
 
 @ExcifyCachedException(methodName = "userNotExist")
 @ExcifyOptionalOrThrow(
@@ -17,7 +13,10 @@ val usernameTakenException = UserServiceExceptions("Username already taken")
     methodName = "orThrow",
     makeForNullable = true
 )
-val userNotExistException = UserServiceExceptions("User not exist")
+val userNotExistException = ClientError("User not exist")
 
 @ExcifyCachedException(methodName = "invalidPassword")
-val invalidPasswordException = UserServiceExceptions("Invalid password")
+val invalidPasswordException = ClientError("Invalid password")
+
+@ExcifyCachedException(methodName = "notChannelAdmin")
+val notChannelAdminException = ClientError("You are not admin of this channel")

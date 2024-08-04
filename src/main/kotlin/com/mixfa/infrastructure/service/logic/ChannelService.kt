@@ -2,10 +2,12 @@ package com.mixfa.infrastructure.service.logic
 
 import com.mixfa.infrastructure.misc.ClientContext
 import com.mixfa.infrastructure.misc.Events
+import com.mixfa.infrastructure.misc.PARAM_SEPARATOR_BYTE
+import com.mixfa.infrastructure.misc.exceptions.ChannelNotFoundException
 import com.mixfa.infrastructure.misc.exceptions.ClientError
+import com.mixfa.infrastructure.misc.exceptions.notChannelAdmin
 import com.mixfa.infrastructure.misc.toByteBuffer
 import com.mixfa.infrastructure.model.ClientData
-import com.mixfa.infrastructure.misc.exceptions.ChannelNotFoundException
 import kotlinx.coroutines.launch
 import org.slf4j.Logger
 import org.springframework.stereotype.Service
@@ -98,9 +100,9 @@ class ChannelService(
         val channel = channelsList.firstOrNull { it.name == name }
             ?: throw ChannelNotFoundException(name)
 
-        if (channel.admin != client) throw ClientError("You are not admin of this channel")
+        if (channel.admin != client) throw ClientError.notChannelAdmin()
 
-        val closeChannelMessage = "close_channel:${channel.name}".toByteBuffer()
+        val closeChannelMessage = "close_channel$PARAM_SEPARATOR_BYTE${channel.name}".toByteBuffer()
         for (participant in channel.participants)
             participant.send(closeChannelMessage)
 
@@ -134,7 +136,7 @@ class ChannelService(
         scope.launch {
             val message = ByteBuffer.allocate(channel.name.length + payload.size + 1)
             message.put(channel.name.toByteArray())
-            message.put(':'.code.toByte())
+            message.put(PARAM_SEPARATOR_BYTE)
             message.put(payload)
             channel.broadcast(message, client)
         }

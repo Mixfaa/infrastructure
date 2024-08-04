@@ -17,7 +17,7 @@ enum class Ops(val handler: KCallable<*>) {
     ;
 
     val args: List<KClass<*>> = handler.parameters.asSequence()
-        .drop(1) // drop this
+        .drop(1) // drop (this param)
         .map { it.type.jvmErasure }
         .toList()
 }
