@@ -1,11 +1,12 @@
 package com.mixfa.infrastructure.service
 
 import arrow.core.nonFatalOrThrow
-import com.mixfa.infrastructure.misc.Events
-import com.mixfa.infrastructure.misc.exceptions.ClientError
+import com.mixfa.infrastructure.misc.event.OnClientDisconnected
+import com.mixfa.infrastructure.misc.exception.ClientError
 import com.mixfa.infrastructure.misc.toByteBuffer
 import com.mixfa.infrastructure.model.ClientData
 import org.slf4j.Logger
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import java.nio.channels.CompletionHandler
 
@@ -13,6 +14,7 @@ import java.nio.channels.CompletionHandler
 class SocketChannelReader(
     private val messageHandler: MessageHandler,
     private val clientRegistry: ClientRegistry,
+    private val eventPublisher: ApplicationEventPublisher,
     private val logger: Logger
 ) : CompletionHandler<Int, ClientData> {
 
@@ -27,7 +29,7 @@ class SocketChannelReader(
 
     private fun emitDisconnection(clientData: ClientData) {
         clientRegistry.handleDisconnection(clientData)
-        Events.OnDisconnected.emit(clientData)
+        eventPublisher.publishEvent(OnClientDisconnected(clientData, this))
     }
 
     override fun completed(result: Int, clientData: ClientData) {

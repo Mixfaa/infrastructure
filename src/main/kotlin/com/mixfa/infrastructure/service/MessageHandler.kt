@@ -2,7 +2,7 @@ package com.mixfa.infrastructure.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.mixfa.infrastructure.misc.ClientContextManager
-import com.mixfa.infrastructure.misc.exceptions.ClientError
+import com.mixfa.infrastructure.misc.exception.ClientError
 import com.mixfa.infrastructure.misc.parseArgs
 import com.mixfa.infrastructure.model.ClientData
 import com.mixfa.infrastructure.service.logic.OperationBus

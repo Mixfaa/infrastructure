@@ -1,15 +1,16 @@
 package com.mixfa.infrastructure.service.logic
 
 import com.mixfa.infrastructure.misc.ClientContext
-import com.mixfa.infrastructure.misc.Events
 import com.mixfa.infrastructure.misc.PARAM_SEPARATOR_BYTE
-import com.mixfa.infrastructure.misc.exceptions.ChannelNotFoundException
-import com.mixfa.infrastructure.misc.exceptions.ClientError
-import com.mixfa.infrastructure.misc.exceptions.notChannelAdmin
+import com.mixfa.infrastructure.misc.event.OnClientDisconnected
+import com.mixfa.infrastructure.misc.exception.ChannelNotFoundException
+import com.mixfa.infrastructure.misc.exception.ClientError
+import com.mixfa.infrastructure.misc.exception.notChannelAdmin
 import com.mixfa.infrastructure.misc.toByteBuffer
 import com.mixfa.infrastructure.model.ClientData
 import kotlinx.coroutines.launch
 import org.slf4j.Logger
+import org.springframework.context.ApplicationListener
 import org.springframework.stereotype.Service
 import java.nio.ByteBuffer
 import java.security.SecureRandom
@@ -52,24 +53,8 @@ private data class Channel(
 class ChannelService(
     private val clientContext: ClientContext,
     private val logger: Logger
-) : ChannelServiceOps {
+) : ChannelServiceOps, ApplicationListener<OnClientDisconnected> {
     private val channelsList: MutableList<Channel> = CopyOnWriteArrayList()
-
-    init {
-        Events.OnDisconnected.subscribe { clientData ->
-            for (channel in channelsList) {
-                if (channel.admin === clientData)
-                    channel.admin = null
-
-                channel.participants.remove(clientData)
-
-                if (channel.admin == null && channel.participants.isEmpty()) {
-                    channelsList.remove(channel) // close empty channel
-                    logger.info("Channel ${channel.name} closed")
-                }
-            }
-        }
-    }
 
     override fun rentChannel(): String {
         val client = clientContext.get()
@@ -157,5 +142,21 @@ class ChannelService(
 
         @OptIn(ExperimentalEncodingApi::class)
         fun generateChannelName(): String = Base64.encode(ByteArray(32).apply(securedRandom::nextBytes))
+    }
+
+    override fun onApplicationEvent(event: OnClientDisconnected) {
+        val clientData = event.clientData
+
+        for (channel in channelsList) {
+            if (channel.admin === clientData)
+                channel.admin = null
+
+            channel.participants.remove(clientData)
+
+            if (channel.admin == null && channel.participants.isEmpty()) {
+                channelsList.remove(channel) // close empty channel
+                logger.info("Channel ${channel.name} closed")
+            }
+        }
     }
 }

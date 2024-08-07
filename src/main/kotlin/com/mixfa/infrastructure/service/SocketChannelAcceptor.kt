@@ -1,7 +1,10 @@
 package com.mixfa.infrastructure.service
 
-import com.mixfa.infrastructure.misc.Events
+import com.mixfa.infrastructure.misc.event.OnClientConnected
+import com.mixfa.infrastructure.misc.event.OnClientDisconnected
 import org.slf4j.Logger
+import org.springframework.context.ApplicationEventPublisher
+import org.springframework.context.ApplicationListener
 import org.springframework.stereotype.Service
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
@@ -12,21 +15,18 @@ final class SocketChannelAcceptor(
     private val socketChannel: AsynchronousServerSocketChannel,
     private val socketChannelReader: SocketChannelReader,
     private val clientRegistry: ClientRegistry,
-    private val logger: Logger
-) : CompletionHandler<AsynchronousSocketChannel, Any?> {
+    private val logger: Logger,
+    private val eventPublisher: ApplicationEventPublisher
+) : CompletionHandler<AsynchronousSocketChannel, Any?>, ApplicationListener<OnClientDisconnected> {
     init {
         socketChannel.accept(null, this)
-
-        Events.OnDisconnected.subscribe { client ->
-            client.socketChannel.close()
-        }
     }
 
     override fun completed(client: AsynchronousSocketChannel, attachment: Any?) {
         try {
             val clientData = clientRegistry.handleConnection(client)
 
-            Events.OnConnected.emit(clientData)
+            eventPublisher.publishEvent(OnClientConnected(clientData, this))
 
             client.read(clientData.buffer, clientData, socketChannelReader)
         } catch (ex: Exception) {
@@ -39,5 +39,9 @@ final class SocketChannelAcceptor(
     override fun failed(exc: Throwable, attachment: Any?) {
         System.err.println("Failed to accept connection: $exc")
         exc.printStackTrace()
+    }
+
+    override fun onApplicationEvent(event: OnClientDisconnected) {
+        event.clientData.socketChannel.close()
     }
 }

@@ -1,4 +1,4 @@
-package com.mixfa.infrastructure.misc.exceptions
+package com.mixfa.infrastructure.misc.exception
 
 import com.mixfa.excify.ExcifyCachedException
 import com.mixfa.excify.ExcifyOptionalOrThrow
