@@ -18,7 +18,7 @@ class SocketChannelReader(
 
     private fun readNext(clientData: ClientData) {
         clientData.buffer.clear()
-        clientData.clientChannel.read(
+        clientData.socketChannel.read(
             clientData.buffer,
             clientData,
             this

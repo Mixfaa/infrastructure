@@ -27,7 +27,7 @@ interface ChannelServiceOps {
     suspend fun listPublicChannels(query: String, page: Int): List<String>
 }
 
-data class Channel(
+private data class Channel(
     @Volatile var admin: ClientData?,
     val name: String,
     val isPublic: Boolean = false,

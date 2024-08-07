@@ -16,14 +16,14 @@ class ClientRegistry(
     private val clients: MutableList<ClientData> = CopyOnWriteArrayList()
 
     fun handleDisconnection(client: ClientData) {
+        client.socketChannel.close()
         client.coroutineScope.cancel()
-        client.clientChannel.close()
         clients.remove(client)
     }
 
-    fun handleConnection(client: AsynchronousSocketChannel): ClientData {
+    fun handleConnection(socketChannel: AsynchronousSocketChannel): ClientData {
         val clientData = ClientData(
-            clientChannel = client,
+            socketChannel = socketChannel,
             coroutineScope = CoroutineScope(rootCoroutineContext + Job()),
         )
 

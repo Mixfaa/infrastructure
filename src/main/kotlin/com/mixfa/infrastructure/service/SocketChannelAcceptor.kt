@@ -18,7 +18,7 @@ final class SocketChannelAcceptor(
         socketChannel.accept(null, this)
 
         Events.OnDisconnected.subscribe { client ->
-            client.clientChannel.close()
+            client.socketChannel.close()
         }
     }
 

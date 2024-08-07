@@ -6,12 +6,12 @@ import java.nio.channels.AsynchronousSocketChannel
 
 class ClientData(
     var user: User? = null,
-    val clientChannel: AsynchronousSocketChannel,
+    val socketChannel: AsynchronousSocketChannel,
     val coroutineScope: CoroutineScope,
     val buffer: ByteBuffer = ByteBuffer.allocate(512)
 ) {
     fun send(msg: ByteArray) {
-        clientChannel.write(ByteBuffer.wrap(msg))
+        socketChannel.write(ByteBuffer.wrap(msg))
     }
 
     fun send(msg: String) {
@@ -19,11 +19,11 @@ class ClientData(
     }
 
     fun send(msg: ByteBuffer) {
-        clientChannel.write(msg)
+        socketChannel.write(msg)
     }
 
     override fun toString(): String {
-        return "ClientData(clientChannel=${clientChannel.remoteAddress})"
+        return "ClientData(clientChannel=${socketChannel.remoteAddress})"
     }
 
     operator fun component1() = this
@@ -33,12 +33,12 @@ class ClientData(
         if (this === other) return true
         if (other !is ClientData) return false
 
-        if (clientChannel != other.clientChannel) return false
+        if (socketChannel != other.socketChannel) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        return clientChannel.hashCode()
+        return socketChannel.hashCode()
     }
 }
