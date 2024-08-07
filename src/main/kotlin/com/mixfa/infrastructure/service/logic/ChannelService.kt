@@ -71,7 +71,7 @@ class ChannelService(
         var channel = channelsList.find { it.name == name }
 
         if (channel != null)
-            throw ClientError("Channel name $name is taken")
+            throw ClientError("Channel name ($name) is taken")
 
         channel = Channel(client, name, true)
         channelsList.add(channel)

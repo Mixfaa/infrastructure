@@ -22,3 +22,17 @@ class ClientContextManager {
 class ClientContext(private val clientContextManager: ClientContextManager) {
     fun get(): ClientData = clientContextManager.get()
 }
+
+
+inline fun <T> ClientContextManager.use(clientData: ClientData, block: () -> T): T {
+    val result = try {
+        this.put(clientData)
+        block()
+    } catch (ex: Throwable) {
+        throw ex
+    } finally {
+        this.clean()
+    }
+
+    return result
+}

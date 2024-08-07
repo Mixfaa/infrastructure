@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.mixfa.infrastructure.misc.ClientContextManager
 import com.mixfa.infrastructure.misc.exception.ClientError
 import com.mixfa.infrastructure.misc.parseArgs
+import com.mixfa.infrastructure.misc.throwUnwrapped
+import com.mixfa.infrastructure.misc.use
 import com.mixfa.infrastructure.model.ClientData
 import com.mixfa.infrastructure.service.logic.OperationBus
 import com.mixfa.infrastructure.service.logic.Ops
@@ -45,44 +47,31 @@ class MessageHandler(
         if (response == null)
             return
 
-        if (response is String)
-            clientData.send(response)
-        else if (response !is Unit)
-            clientData.send(mapper.writeValueAsBytes(response))
+        if (response is String) clientData.send(response)
+        else if (response !is Unit) clientData.send(mapper.writeValueAsBytes(response))
     }
 
     private fun handleAsync(clientData: ClientData, opsTag: Ops, args: Array<Any?>) {
         clientData.coroutineScope.launch {
             try {
-                clientContextManager.put(clientData)
-                val response = try {
+                val response = clientContextManager.use(clientData) {
                     opsTag.handler.callSuspend(bus, *args)
-                } catch (ex: InvocationTargetException) {
-                    throw ex.targetException
                 }
                 sendResponse(clientData, response)
-            } catch (throwable: Throwable) {
-                throw throwable
-            } finally {
-                clientContextManager.clean()
+            } catch (ex: InvocationTargetException) {
+                ex.throwUnwrapped()
             }
         }
     }
 
     private fun handleSync(clientData: ClientData, opsTag: Ops, args: Array<Any?>) {
         try {
-            clientContextManager.put(clientData)
-            val response = try {
+            val response = clientContextManager.use(clientData) {
                 opsTag.handler.call(bus, *args)
-            } catch (ex: InvocationTargetException) {
-                throw ex.targetException
             }
-
             sendResponse(clientData, response)
-        } catch (throwable: Throwable) {
-            throw throwable
-        } finally {
-            clientContextManager.clean()
+        } catch (ex: InvocationTargetException) {
+            ex.throwUnwrapped()
         }
     }
 }
