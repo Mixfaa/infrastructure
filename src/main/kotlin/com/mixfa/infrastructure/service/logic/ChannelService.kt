@@ -120,20 +120,22 @@ class ChannelService(
 
         scope.launch {
             val message = ByteBuffer.allocate(channel.name.length + payload.size + 1)
+
             message.put(channel.name.toByteArray())
             message.put(PARAM_SEPARATOR_BYTE)
             message.put(payload)
+
             channel.broadcast(message, client)
         }
     }
 
     override suspend fun listPublicChannels(query: String, page: Int): List<String> {
-        return channelsMap.values
+        return channelsMap
             .asSequence()
-            .filter { it.isPublic && it.name.contains(query, true) }
+            .filter { it.value.isPublic && it.key.contains(query, true) }
             .drop(page * PAGE_SIZE)
             .take(PAGE_SIZE)
-            .map(Channel::name)
+            .map(Map.Entry<String, *>::key)
             .toList()
     }
 
