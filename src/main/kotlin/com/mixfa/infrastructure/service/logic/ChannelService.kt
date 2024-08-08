@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationListener
 import org.springframework.stereotype.Service
 import java.nio.ByteBuffer
 import java.security.SecureRandom
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -54,13 +55,13 @@ class ChannelService(
     private val clientContext: ClientContext,
     private val logger: Logger
 ) : ChannelServiceOps, ApplicationListener<OnClientDisconnected> {
-    private val channelsList: MutableList<Channel> = CopyOnWriteArrayList()
+    private val channelsMap: MutableMap<String, Channel> = ConcurrentHashMap()
 
     override fun rentChannel(): String {
         val client = clientContext.get()
 
         val channel = Channel(client, generateChannelName())
-        channelsList.add(channel)
+        channelsMap[channel.name] = channel
 
         return channel.name
     }
@@ -68,21 +69,20 @@ class ChannelService(
     override fun rentPublicChannel(name: String): String {
         val client = clientContext.get()
 
-        var channel = channelsList.find { it.name == name }
+        var channel = channelsMap[name]
 
-        if (channel != null)
-            throw ClientError("Channel name ($name) is taken")
+        if (channel != null) throw ClientError("Channel name ($name) is taken")
 
         channel = Channel(client, name, true)
-        channelsList.add(channel)
+        channelsMap[name] = channel
 
-        return channel.name
+        return name
     }
 
     override fun closeChannel(name: String) {
         val client = clientContext.get()
 
-        val channel = channelsList.firstOrNull { it.name == name }
+        val channel = channelsMap[name]
             ?: throw ChannelNotFoundException(name)
 
         if (channel.admin != client) throw ClientError.notChannelAdmin()
@@ -91,13 +91,13 @@ class ChannelService(
         for (participant in channel.participants)
             participant.send(closeChannelMessage)
 
-        channelsList.remove(channel)
+        channelsMap.remove(name)
     }
 
     override fun enterChannel(name: String) {
         val client = clientContext.get()
 
-        val channel = channelsList.find { it.name == name }
+        val channel = channelsMap[name]
             ?: throw ChannelNotFoundException(name)
 
         channel.participants.add(client)
@@ -106,7 +106,7 @@ class ChannelService(
     override fun exitChannel(name: String) {
         val client = clientContext.get()
 
-        val channel = channelsList.find { it.name == name }
+        val channel = channelsMap[name]
             ?: throw ChannelNotFoundException(name)
 
         channel.participants.remove(client)
@@ -115,7 +115,7 @@ class ChannelService(
     override fun sendToChannel(name: String, payload: ByteArray) {
         val (client, scope) = clientContext.get()
 
-        val channel = channelsList.find { it.name == name }
+        val channel = channelsMap[name]
             ?: throw ChannelNotFoundException(name)
 
         scope.launch {
@@ -128,12 +128,29 @@ class ChannelService(
     }
 
     override suspend fun listPublicChannels(query: String, page: Int): List<String> {
-        return channelsList.asSequence()
+        return channelsMap.values
+            .asSequence()
             .filter { it.isPublic && it.name.contains(query, true) }
             .drop(page * PAGE_SIZE)
             .take(PAGE_SIZE)
             .map(Channel::name)
             .toList()
+    }
+
+    override fun onApplicationEvent(event: OnClientDisconnected) {
+        val clientData = event.clientData
+
+        for ((name, channel) in channelsMap) {
+            if (channel.admin === clientData)
+                channel.admin = null
+
+            channel.participants.remove(clientData)
+
+            if (channel.admin == null && channel.participants.isEmpty()) {
+                channelsMap.remove(name) // close empty channel
+                logger.info("Channel ${channel.name} closed")
+            }
+        }
     }
 
     companion object {
@@ -142,21 +159,5 @@ class ChannelService(
 
         @OptIn(ExperimentalEncodingApi::class)
         fun generateChannelName(): String = Base64.encode(ByteArray(32).apply(securedRandom::nextBytes))
-    }
-
-    override fun onApplicationEvent(event: OnClientDisconnected) {
-        val clientData = event.clientData
-
-        for (channel in channelsList) {
-            if (channel.admin === clientData)
-                channel.admin = null
-
-            channel.participants.remove(clientData)
-
-            if (channel.admin == null && channel.participants.isEmpty()) {
-                channelsList.remove(channel) // close empty channel
-                logger.info("Channel ${channel.name} closed")
-            }
-        }
     }
 }
