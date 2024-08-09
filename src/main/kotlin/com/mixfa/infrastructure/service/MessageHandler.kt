@@ -3,6 +3,7 @@ package com.mixfa.infrastructure.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.mixfa.infrastructure.misc.ClientContextManager
 import com.mixfa.infrastructure.misc.exception.ClientError
+import com.mixfa.infrastructure.misc.exception.invalidOpsTag
 import com.mixfa.infrastructure.misc.parseArgs
 import com.mixfa.infrastructure.misc.throwUnwrapped
 import com.mixfa.infrastructure.misc.use
@@ -29,7 +30,7 @@ class MessageHandler(
         val tag = bytes.first()
 
         if (tag >= Ops.entries.size)
-            throw ClientError("Invalid ops tag")
+            throw ClientError.invalidOpsTag()
 
         val opsTag = Ops.entries[tag.toInt()]
         val args = parseArgs(bytes, 1, size, opsTag.args)

@@ -20,3 +20,6 @@ val invalidPasswordException = ClientError("Invalid password")
 
 @ExcifyCachedException(methodName = "notChannelAdmin")
 val notChannelAdminException = ClientError("You are not admin of this channel")
+
+@ExcifyCachedException(methodName = "invalidOpsTag")
+val invalidOpsTagException = ClientError("Invalid ops tag")

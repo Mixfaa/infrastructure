@@ -25,8 +25,7 @@ class UserService(
         val client = clientContext.get()
 
         val exists = userRepo.existsById(username)
-        if (exists)
-            throw ClientError.usernameTaken()
+        if (exists) throw ClientError.usernameTaken()
 
         val user = User(username, passwordEncoder.encode(password))
         client.user = user
@@ -44,5 +43,4 @@ class UserService(
 
         client.user = user
     }
-
 }
