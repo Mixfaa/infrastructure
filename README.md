@@ -1,6 +1,7 @@
 Service, built for establishing connections and messaging between apps(i expected gamehacks),
 
 Uses default sockets for communication
+
 Have next operations:
 - AUTHENTICATE params: username: String, password: String code 0
 - REGISTER params: username: String, password: String code 1
