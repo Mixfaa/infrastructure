@@ -2,7 +2,7 @@ Service, built for establishing connections and messaging between apps(i expecte
 
 Uses default sockets for communication
 
-Have next operations:
+Has next operations:
 - AUTHENTICATE params: username: String, password: String code 0
 - REGISTER params: username: String, password: String code 1
 - RENT_CHANNEL returns: channel name:String code 2
